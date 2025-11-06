@@ -1,0 +1,38 @@
+{
+  "name": "vault-bridge",
+  "version": "1.0.0",
+  "description": "Sync your Obsidian vault to Sui Chain with elegant UI",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "build:outdir": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production --outdir",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "obsidian",
+    "sui",
+    "blockchain",
+    "sync"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@mysten/bcs": "^1.6.0",
+    "@mysten/dapp-kit": "^0.16.2",
+    "@mysten/seal": "0.4.5",
+    "@mysten/sui": "^1.29.1",
+    "dotenv": "^16.5.0",
+    "pouchdb": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "builtin-modules": "3.3.0",
+    "esbuild": "0.17.3",
+    "obsidian": "latest",
+    "tslib": "2.4.0",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,308 @@
+/* 主题变量 */
+:root {
+  --vault-bridge-primary-color: #4F46E5;
+  --vault-bridge-secondary-color: #818CF8;
+  --vault-bridge-success-color: #10B981;
+  --vault-bridge-danger-color: #EF4444;
+  --vault-bridge-warning-color: #F59E0B;
+  --vault-bridge-info-color: #3B82F6;
+  --vault-bridge-light-bg: #F9FAFB;
+  --vault-bridge-dark-bg: #1F2937;
+  --vault-bridge-border-radius: 8px;
+  --vault-bridge-transition: all 0.3s ease;
+}
+
+/* 深色主题适配 */
+.theme-dark {
+  --vault-bridge-bg-primary: var(--vault-bridge-dark-bg);
+  --vault-bridge-text-primary: #FFFFFF;
+  --vault-bridge-text-secondary: #9CA3AF;
+  --vault-bridge-border-color: #374151;
+}
+
+/* 浅色主题适配 */
+.theme-light {
+  --vault-bridge-bg-primary: var(--vault-bridge-light-bg);
+  --vault-bridge-text-primary: #111827;
+  --vault-bridge-text-secondary: #6B7280;
+  --vault-bridge-border-color: #E5E7EB;
+}
+
+/* 模态框样式 */
+.vault-bridge-modal-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--vault-bridge-primary-color);
+  font-size: 1.5em;
+  font-weight: 600;
+  border-bottom: 2px solid var(--vault-bridge-secondary-color);
+  padding-bottom: 8px;
+}
+
+.vault-bridge-modal-content {
+  margin-bottom: 20px;
+  line-height: 1.6;
+  color: var(--vault-bridge-text-primary);
+}
+
+.vault-bridge-button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.vault-bridge-button {
+  padding: 8px 16px;
+  border-radius: var(--vault-bridge-border-radius);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--vault-bridge-transition);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.vault-bridge-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.vault-bridge-confirm-button {
+  background-color: var(--vault-bridge-primary-color);
+  color: white;
+}
+
+.vault-bridge-confirm-button:hover {
+  background-color: var(--vault-bridge-secondary-color);
+}
+
+.vault-bridge-cancel-button {
+  background-color: transparent;
+  color: var(--vault-bridge-text-primary);
+  border: 1px solid var(--vault-bridge-border-color);
+}
+
+.vault-bridge-cancel-button:hover {
+  background-color: var(--vault-bridge-border-color);
+}
+
+/* 进度条样式 */
+.vault-bridge-progress-container {
+  width: 100%;
+  height: 16px;
+  background-color: var(--vault-bridge-border-color);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.vault-bridge-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--vault-bridge-primary-color) 0%, var(--vault-bridge-secondary-color) 100%);
+  transition: width 0.3s ease;
+  border-radius: 8px;
+}
+
+.vault-bridge-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.8em;
+  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+}
+
+/* 设置选项卡样式 */
+.vault-bridge-settings .setting-item {
+  border-bottom: 1px solid var(--vault-bridge-border-color);
+  padding: 16px 0;
+}
+
+.vault-bridge-settings .setting-item:last-child {
+  border-bottom: none;
+}
+
+.vault-bridge-settings .setting-item-name {
+  color: var(--vault-bridge-text-primary);
+  font-weight: 600;
+}
+
+.vault-bridge-settings .setting-item-description {
+  color: var(--vault-bridge-text-secondary);
+  margin-top: 4px;
+}
+
+.vault-bridge-settings input[type="text"],
+.vault-bridge-settings input[type="password"],
+.vault-bridge-settings input[type="number"] {
+  background-color: transparent;
+  border: 1px solid var(--vault-bridge-border-color);
+  border-radius: var(--vault-bridge-border-radius);
+  padding: 8px 12px;
+  transition: var(--vault-bridge-transition);
+}
+
+.vault-bridge-settings input:focus {
+  border-color: var(--vault-bridge-primary-color);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+/* 操作按钮样式 */
+.vault-bridge-action-button {
+  background-color: var(--vault-bridge-primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--vault-bridge-border-radius);
+  padding: 8px 16px;
+  margin-right: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--vault-bridge-transition);
+  font-weight: 500;
+}
+
+.vault-bridge-action-button:hover {
+  background-color: var(--vault-bridge-secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.vault-bridge-action-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 状态消息样式 */
+.vault-bridge-status {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--vault-bridge-border-radius);
+  font-weight: 500;
+}
+
+.vault-bridge-status-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--vault-bridge-success-color);
+  border-left: 4px solid var(--vault-bridge-success-color);
+}
+
+.vault-bridge-status-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--vault-bridge-danger-color);
+  border-left: 4px solid var(--vault-bridge-danger-color);
+}
+
+.vault-bridge-status-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--vault-bridge-warning-color);
+  border-left: 4px solid var(--vault-bridge-warning-color);
+}
+
+.vault-bridge-status-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--vault-bridge-info-color);
+  border-left: 4px solid var(--vault-bridge-info-color);
+}
+
+/* 标签徽章样式 */
+.vault-bridge-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.vault-bridge-badge-primary {
+  background-color: rgba(79, 70, 229, 0.1);
+  color: var(--vault-bridge-primary-color);
+}
+
+.vault-bridge-badge-secondary {
+  background-color: rgba(129, 140, 248, 0.1);
+  color: var(--vault-bridge-secondary-color);
+}
+
+.vault-bridge-badge-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--vault-bridge-success-color);
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.vault-bridge-loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 菜单样式 */
+.vault-bridge-menu {
+  border-radius: var(--vault-bridge-border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 8px 0;
+  background-color: var(--vault-bridge-bg-primary);
+  border: 1px solid var(--vault-bridge-border-color);
+}
+
+.vault-bridge-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--vault-bridge-transition);
+}
+
+.vault-bridge-menu-item:hover {
+  background-color: rgba(79, 70, 229, 0.1);
+  color: var(--vault-bridge-primary-color);
+}
+
+.vault-bridge-menu-item-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* 工具提示样式 */
+.vault-bridge-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.vault-bridge-tooltip .vault-bridge-tooltip-text {
+  visibility: hidden;
+  background-color: rgba(0,0,0,0.8);
+  color: white;
+  text-align: center;
+  border-radius: 4px;
+  padding: 4px 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+  font-size: 0.8em;
+}
+
+.vault-bridge-tooltip:hover .vault-bridge-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}

@@ -1,0 +1,11 @@
+{
+  "id": "vault-bridge",
+  "name": "Vault Bridge",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "无缝连接您的Obsidian笔记与Sui链，提供优雅的用户界面和安全的区块链存储解决方案",
+  "author": "jethrozz",
+  "authorUrl": "https://github.com/jethrozz",
+  "fundingUrl": "https://github.com/jethrozz/VaultBridge",
+  "isDesktopOnly": false
+}
