@@ -22,6 +22,8 @@
     "@mysten/dapp-kit": "^0.16.2",
     "@mysten/seal": "0.4.5",
     "@mysten/sui": "^1.29.1",
+    "diff": "^8.0.2",
+    "diff2html": "^3.4.52",
     "dotenv": "^16.5.0",
     "pouchdb": "^9.0.0"
   },

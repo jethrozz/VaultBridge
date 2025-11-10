@@ -5,7 +5,7 @@ import { Transaction } from '@mysten/sui/transactions';
 import { PACKAGE_ID, NET_WORK } from './constant';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { SealUtil } from './utils/sealUtil';
-import { VaultSyncModal } from './components/modal';
+import { VaultSyncModal, DiffModal } from './components/modal';
 
 export async function initVault(vaultName: string, wallet: MnemonicWallet): Promise<Vault | undefined> {
     // 初始化，先获取到vault的名称，去链上找到该钱包是否有该vault
@@ -205,7 +205,8 @@ export async function pullFromChain(
     vaultLocalPath: string, 
     allMarkdownFiles: TFile[], 
     wallet: MnemonicWallet, 
-    adapter: DataAdapter
+    adapter: DataAdapter,
+    app?: App
 ) {
     // 下载，先获取到vault的名称，去链上找该钱包是否有该vault
     // 有，判断是否有更新
@@ -217,7 +218,7 @@ export async function pullFromChain(
         packageId: PACKAGE_ID,
     };
 
-    const { downloadFile } = SealUtil(props);
+    const { downloadFile, downloadFileContent } = SealUtil(props);
 
     const stack: Array<{ dir: VaultDir, visited: boolean }> = [];
     stack.push({ dir: vault, visited: false });
@@ -247,9 +248,53 @@ export async function pullFromChain(
                     const exists = await adapter.exists(cur_path, true);
                     
                     if (!exists) {
-                        // 下载文件
-                        console.log("下载文件", file.title);
+                        // 文件不存在，直接下载
+                        console.log("下载新文件", file.title);
                         await downloadFile(file, cur_path, adapter);
+                    } else {
+                        // 文件存在，比较差异
+                        console.log("检查文件差异", file.title);
+                        
+                        // 读取本地文件内容
+                        const localContent = await adapter.read(cur_path);
+                        
+                        // 获取链上文件内容
+                        const remoteContent = await downloadFileContent(file);
+                        
+                        // 比较内容
+                        if (localContent !== remoteContent) {
+                            console.log("文件内容不同，显示差异", file.title);
+                            
+                            if (app) {
+                                // 显示差异对话框
+                                await new Promise<void>((resolve) => {
+                                    const diffModal = new DiffModal(
+                                        app,
+                                        file.title,
+                                        localContent,
+                                        remoteContent,
+                                        async (content?: string) => {
+                                            // 用户选择更新（可能是链上版本或手动编辑的版本）
+                                            const finalContent = content || remoteContent;
+                                            console.log("用户选择更新文件", file.title);
+                                            await adapter.write(cur_path, finalContent);
+                                            resolve();
+                                        },
+                                        () => {
+                                            // 用户选择跳过
+                                            console.log("用户选择跳过文件", file.title);
+                                            resolve();
+                                        }
+                                    );
+                                    diffModal.open();
+                                });
+                            } else {
+                                // 如果没有app实例，直接覆盖
+                                await adapter.write(cur_path, remoteContent);
+                            }
+                        } else {
+                            console.log("文件内容相同，跳过", file.title);
+                        }
                     }
                 }
                 

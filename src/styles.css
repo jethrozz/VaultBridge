@@ -306,3 +306,148 @@
   visibility: visible;
   opacity: 1;
 }
+
+/* Diff Modal 样式 */
+.vault-bridge-diff-modal .modal {
+  max-width: 90vw;
+  width: 1200px;
+}
+
+.vault-bridge-diff-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  border: 1px solid var(--vault-bridge-border-color);
+  border-radius: var(--vault-bridge-border-radius);
+  padding: 10px;
+  background-color: var(--background-primary);
+}
+
+.vault-bridge-diff-info {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid var(--vault-bridge-info-color);
+  border-radius: var(--vault-bridge-border-radius);
+}
+
+.vault-bridge-diff-info-text {
+  margin: 0;
+  color: var(--vault-bridge-text-primary);
+  font-size: 0.95em;
+}
+
+/* 编辑器样式 */
+.vault-bridge-edit-container {
+  margin-bottom: 20px;
+}
+
+.vault-bridge-edit-info {
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid var(--vault-bridge-warning-color);
+  border-radius: var(--vault-bridge-border-radius);
+}
+
+.vault-bridge-edit-info-text {
+  margin: 0;
+  color: var(--vault-bridge-text-primary);
+  font-size: 0.95em;
+}
+
+.vault-bridge-edit-textarea {
+  width: 100%;
+  min-height: 400px;
+  padding: 12px;
+  border: 1px solid var(--vault-bridge-border-color);
+  border-radius: var(--vault-bridge-border-radius);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  transition: var(--vault-bridge-transition);
+}
+
+.vault-bridge-edit-textarea:focus {
+  outline: none;
+  border-color: var(--vault-bridge-primary-color);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.vault-bridge-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.vault-bridge-quick-action-button {
+  padding: 6px 12px;
+  border: 1px solid var(--vault-bridge-border-color);
+  border-radius: var(--vault-bridge-border-radius);
+  background-color: transparent;
+  color: var(--vault-bridge-text-primary);
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: var(--vault-bridge-transition);
+}
+
+.vault-bridge-quick-action-button:hover {
+  background-color: var(--vault-bridge-primary-color);
+  color: white;
+  border-color: var(--vault-bridge-primary-color);
+}
+
+.vault-bridge-edit-button {
+  background-color: var(--vault-bridge-warning-color);
+  color: white;
+}
+
+.vault-bridge-edit-button:hover {
+  background-color: #D97706;
+}
+
+.vault-bridge-save-edit-button {
+  background-color: var(--vault-bridge-success-color);
+  color: white;
+}
+
+.vault-bridge-save-edit-button:hover {
+  background-color: #059669;
+}
+
+/* diff2html 样式覆盖 */
+.vault-bridge-diff-container .d2h-wrapper {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+}
+
+.vault-bridge-diff-container .d2h-file-header {
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.vault-bridge-diff-container .d2h-code-line {
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.vault-bridge-diff-container .d2h-code-line-prefix {
+  color: var(--text-muted);
+}
+
+.vault-bridge-diff-container .d2h-ins {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+
+.vault-bridge-diff-container .d2h-del {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+.vault-bridge-diff-container .d2h-info {
+  background-color: var(--background-secondary);
+  color: var(--text-muted);
+}

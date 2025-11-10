@@ -460,10 +460,57 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
         }
     };
     
+    async function downloadFileContent(file: VaultFile): Promise<string> {
+        const TTL_MIN = 10;
+        const sessionKey = new SessionKey({
+            address: wallet.getAddress(),
+            packageId,
+            ttlMin: TTL_MIN,
+        });
+
+        try {
+            const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
+            const client = new SealClient({
+                suiClient: suiClient as any,
+                serverObjectIds: getAllowlistedKeyServers('testnet').map(id => [
+                    id, 1
+                ] as [string, number]),
+                verifyKeyServers: false,
+            });
+            
+            let message = sessionKey.getPersonalMessage();
+            let signature = await wallet.signPersonalMessage(message);
+            const moveCallConstructor = await constructMoveCall(packageId, file.id);
+
+            await sessionKey.setPersonalMessageSignature(signature);
+            const blobs = await downloadAndDecrypt(
+                null as any, // adapter不需要用于此方法
+                [file.blob_id],
+                sessionKey,
+                suiClient,
+                client,
+                moveCallConstructor
+            );
+            
+            if (blobs.length === 0) {
+                throw new Error('下载文件内容失败');
+            }
+            
+            // 将Blob转换为文本
+            const blob = blobs[0];
+            const text = await blob.text();
+            return text;
+        } catch (error: any) {
+            console.error('下载文件内容错误:', error);
+            throw error;
+        }
+    }
+    
     return {
         handleSubmit,
         displayUpload,
         downloadFile,
+        downloadFileContent,
         handlePublish: (title: string, end_epoch: number, parent_dir: string, blob_id: string) => 
             handlePublish(title, end_epoch, parent_dir, blob_id)
     };

@@ -186,7 +186,7 @@ export default class VaultBridgePlugin extends Plugin {
                                     progressModal.updateMessage('正在下载文件...');
                                     
                                     let dataAdapter = this.app.vault.adapter;
-                                    await pullFromChain(vault, vaultPath, files, this.mnemonicWallet, dataAdapter);
+                                    await pullFromChain(vault, vaultPath, files, this.mnemonicWallet, dataAdapter, this.app);
                                     
                                     // 更新最后同步时间
                                     this.settings.lastSyncTimestamp = Date.now();
