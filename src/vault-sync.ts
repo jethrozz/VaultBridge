@@ -22,14 +22,14 @@ export async function initVault(vaultName: string, wallet: MnemonicWallet): Prom
         
         const rootDir = tx.moveCall({
             package: PACKAGE_ID,
-            module: 'perlite_sync',
+            module: 'coral_sync',
             function: 'new_root_directory',
             arguments: [tx.pure.string(vaultName), tx.object("0x6")],
         });
         
         tx.moveCall({
             package: PACKAGE_ID,
-            module: 'perlite_sync',
+            module: 'coral_sync',
             function: 'transfer_dir',
             arguments: [tx.object(rootDir), tx.pure.address(address)],
         });
@@ -63,7 +63,7 @@ export async function pushToChain(
     allMarkdownFiles: TFile[], 
     wallet: MnemonicWallet, 
     epoch: number, 
-    notifyProgress: (message: string) => void, 
+    notifyProgress: (message: string, progress?: number) => void, 
     app: App
 ) {
     console.log("推送vault", vault.name, vaultLocalPath);
@@ -84,11 +84,18 @@ export async function pushToChain(
         // 上传文件
         let props = {
             vaultId: vaultId,
-            moduleName: 'perlite_sync',
+            moduleName: 'coral_sync',
             wallet: wallet,
             packageId: PACKAGE_ID,
         };
         const { handleSubmit } = SealUtil(props);
+        
+        // 计算需要上传的文件数量
+        const filesToUpload = allMarkdownFiles.filter(file => !map.has(file.path));
+        const totalFiles = filesToUpload.length;
+        let processedFiles = 0;
+
+        notifyProgress(`准备上传 ${totalFiles} 个文件...`, 0);
 
         for (let j = 0; j < allMarkdownFiles.length; j++) {
             let file = allMarkdownFiles[j];
@@ -115,12 +122,14 @@ export async function pushToChain(
                         continue;
                     }
                     let parent = parentObjMap.get(tempPath);
-                    notifyProgress(`处理目录: ${tempPath}`);
+                    notifyProgress(`处理目录: ${tempPath}`, Math.floor((processedFiles / totalFiles) * 80));
+                    // 判断 parent 是字符串ID还是交易中的对象引用
+                    let parentArg = typeof parent === 'string' ? tx.object(parent) : parent;
                     let par = tx.moveCall({
                         package: PACKAGE_ID,
-                        module: 'perlite_sync',
+                        module: 'coral_sync',
                         function: 'new_directory',
-                        arguments: [tx.pure.string(currDir), tx.object(parent), tx.object("0x6")],
+                        arguments: [tx.pure.string(currDir), parentArg, tx.object("0x6")],
                     });
                     newDirMap.set(tempPath, par);
                     parentObjMap.set(tempPath + "/" + currFilePathSplit[i + 1], par);
@@ -135,7 +144,9 @@ export async function pushToChain(
                 const data = fs.readFileSync(sourcePath);
                 const fileName = path.basename(sourcePath);
                 console.log("文件名:", fileName);
-                notifyProgress(`处理文件: ${fileName}`);
+                
+                const currentProgress = Math.floor((processedFiles / totalFiles) * 80);
+                notifyProgress(`正在上传: ${fileName} (${processedFiles + 1}/${totalFiles})`, currentProgress);
                 
                 const result = await handleSubmit(new File([data], fileName, {
                     type: 'text/plain',
@@ -143,10 +154,14 @@ export async function pushToChain(
                 }), epoch);
                 
                 if (result) {
-                    notifyProgress(`文件: ${fileName} 已保存至Walrus`);
+                    processedFiles++;
+                    const newProgress = Math.floor((processedFiles / totalFiles) * 80);
+                    notifyProgress(`文件 ${fileName} 已保存至Walrus (${processedFiles}/${totalFiles})`, newProgress);
+                    // 判断 parent_dir 是字符串ID还是交易中的对象引用
+                    let parentDirArg = typeof parent_dir === 'string' ? tx.object(parent_dir) : parent_dir;
                     let fileResult = tx.moveCall({
-                        target: PACKAGE_ID + '::perlite_sync::new_file',
-                        arguments: [tx.pure.string(fileName), tx.pure.string(result.blobId), tx.pure.u64(result.endEpoch), tx.object(parent_dir), tx.object("0x6")],
+                        target: PACKAGE_ID + '::coral_sync::new_file',
+                        arguments: [tx.pure.string(fileName), tx.pure.string(result.blobId), tx.pure.u64(result.endEpoch), parentDirArg, tx.object("0x6")],
                     });
                     waitTransferFiles.push(fileResult);
                 }
@@ -157,7 +172,7 @@ export async function pushToChain(
         waitTransferDirs.forEach(dir => {
             tx.moveCall({
                 package: PACKAGE_ID,
-                module: 'perlite_sync',
+                module: 'coral_sync',
                 function: 'transfer_dir',
                 arguments: [tx.object(dir), tx.pure.address(address)],
             });
@@ -167,22 +182,26 @@ export async function pushToChain(
         waitTransferFiles.forEach(file => {
             tx.moveCall({
                 package: PACKAGE_ID,
-                module: 'perlite_sync',
+                module: 'coral_sync',
                 function: 'transfer_file',
                 arguments: [tx.object(file), tx.pure.address(address)],
             });
         });
         
-        notifyProgress("正在同步数据至链上，请稍后...");
+        notifyProgress("正在同步数据至链上，请稍后...", 85);
         const suiClient = new SuiClient({ url: getFullnodeUrl(NET_WORK) });
         
         try {
             let txBytes = await tx.build({ client: suiClient });
+            notifyProgress("正在签名交易...", 90);
             let signature = await wallet.signTransaction(txBytes);
+            notifyProgress("正在提交交易到区块链...", 95);
             let txResult = await suiClient.executeTransactionBlock({
                 transactionBlock: txBytes,
                 signature: signature,
             });
+            
+            notifyProgress("上传完成!", 100);
             
             const confirmModal = new VaultSyncModal(
                 app, 
@@ -191,7 +210,7 @@ export async function pushToChain(
             );
             confirmModal.open();
         } catch (e) {
-            notifyProgress("发布数据上链异常，请查看控制台获取详情");
+            notifyProgress("发布数据上链异常，请查看控制台获取详情", 0);
             console.log("交易构建错误:", e);
             throw e;
         }
@@ -206,6 +225,7 @@ export async function pullFromChain(
     allMarkdownFiles: TFile[], 
     wallet: MnemonicWallet, 
     adapter: DataAdapter,
+    notifyProgress?: (message: string, progress?: number) => void,
     app?: App
 ) {
     // 下载，先获取到vault的名称，去链上找该钱包是否有该vault
@@ -213,7 +233,7 @@ export async function pullFromChain(
     const vaultId = vault.id;
     const props = {
         vaultId: vaultId,
-        moduleName: 'perlite_sync',
+        moduleName: 'coral_sync',
         wallet: wallet,
         packageId: PACKAGE_ID,
     };
@@ -223,6 +243,22 @@ export async function pullFromChain(
     const stack: Array<{ dir: VaultDir, visited: boolean }> = [];
     stack.push({ dir: vault, visited: false });
     const path_join: string[] = [];
+    
+    // 计算总文件数
+    const countFiles = (dir: VaultDir): number => {
+        let count = dir.files.length;
+        dir.directories.forEach(subDir => {
+            count += countFiles(subDir);
+        });
+        return count;
+    };
+    
+    const totalFiles = countFiles(vault);
+    let processedFiles = 0;
+    
+    if (notifyProgress) {
+        notifyProgress(`准备下载 ${totalFiles} 个文件...`, 0);
+    }
     
     while (stack.length > 0) {
         const entry = stack.pop();
@@ -240,6 +276,9 @@ export async function pullFromChain(
                 if (!dir_exists) {
                     // 目录不存在，创建目录
                     await adapter.mkdir(cur_dir_path);
+                    if (notifyProgress) {
+                        notifyProgress(`创建目录: ${cur_dir_path}`, Math.floor((processedFiles / totalFiles) * 100));
+                    }
                 }
                 
                 // 处理当前目录文件
@@ -247,10 +286,15 @@ export async function pullFromChain(
                     const cur_path = [...path_join, file.title].join('/');
                     const exists = await adapter.exists(cur_path, true);
                     
+                    if (notifyProgress) {
+                        notifyProgress(`正在处理: ${file.title} (${processedFiles + 1}/${totalFiles})`, Math.floor((processedFiles / totalFiles) * 100));
+                    }
+                    
                     if (!exists) {
                         // 文件不存在，直接下载
                         console.log("下载新文件", file.title);
                         await downloadFile(file, cur_path, adapter);
+                        processedFiles++;
                     } else {
                         // 文件存在，比较差异
                         console.log("检查文件差异", file.title);
@@ -295,6 +339,12 @@ export async function pullFromChain(
                         } else {
                             console.log("文件内容相同，跳过", file.title);
                         }
+                        processedFiles++;
+                    }
+                    
+                    if (notifyProgress) {
+                        const progress = Math.floor((processedFiles / totalFiles) * 100);
+                        notifyProgress(`已处理 ${file.title} (${processedFiles}/${totalFiles})`, progress);
                     }
                 }
                 

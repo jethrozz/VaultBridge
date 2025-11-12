@@ -86,33 +86,248 @@
   background-color: var(--vault-bridge-border-color);
 }
 
+/* 进度模态框样式 */
+.vault-bridge-progress-modal {
+  min-width: 480px;
+}
+
+.vault-bridge-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--vault-bridge-border-color);
+}
+
+.vault-bridge-progress-title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.vault-bridge-status-icon {
+  font-size: 2em;
+  animation: bounceIn 0.5s ease-out;
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.vault-bridge-progress-title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.5em;
+}
+
+/* 旋转加载动画 */
+.vault-bridge-spinner {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.vault-bridge-spinner-circle {
+  width: 8px;
+  height: 8px;
+  background-color: var(--vault-bridge-primary-color);
+  border-radius: 50%;
+  animation: spinnerBounce 1.4s infinite ease-in-out both;
+}
+
+.vault-bridge-spinner-circle:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.vault-bridge-spinner-circle:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes spinnerBounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* 进度条样式 */
 .vault-bridge-progress-container {
   width: 100%;
-  height: 16px;
-  background-color: var(--vault-bridge-border-color);
-  border-radius: 8px;
-  margin-bottom: 16px;
-  position: relative;
-  overflow: hidden;
+  margin-bottom: 20px;
 }
 
 .vault-bridge-progress-bar {
+  width: 100%;
+  height: 24px;
+  background-color: var(--background-secondary);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--vault-bridge-border-color);
+}
+
+.vault-bridge-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--vault-bridge-primary-color) 0%, var(--vault-bridge-secondary-color) 100%);
-  transition: width 0.3s ease;
-  border-radius: 8px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
+}
+
+/* 进度条光泽效果 */
+.vault-bridge-progress-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.vault-bridge-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
 }
 
 .vault-bridge-progress-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-weight: 600;
-  font-size: 0.8em;
-  text-shadow: 0 0 2px rgba(0,0,0,0.5);
+  font-weight: 700;
+  font-size: 1.1em;
+  color: var(--vault-bridge-primary-color);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 进度内容区域 */
+.vault-bridge-progress-content {
+  margin-top: 20px;
+}
+
+.vault-bridge-progress-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(129, 140, 248, 0.05) 100%);
+  border-left: 4px solid var(--vault-bridge-primary-color);
+  border-radius: var(--vault-bridge-border-radius);
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: var(--text-normal);
+  transition: opacity 0.3s ease;
+}
+
+.vault-bridge-message-icon {
+  font-size: 1.2em;
+}
+
+/* 步骤列表样式 */
+.vault-bridge-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vault-bridge-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--vault-bridge-border-radius);
+  background-color: var(--background-secondary);
+  transition: var(--vault-bridge-transition);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.vault-bridge-step-icon {
+  font-size: 1.2em;
+  min-width: 24px;
+  text-align: center;
+}
+
+.vault-bridge-step-text {
+  flex: 1;
+  font-size: 0.95em;
+  color: var(--text-normal);
+}
+
+.vault-bridge-step-pending {
+  opacity: 0.5;
+}
+
+.vault-bridge-step-processing {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(129, 140, 248, 0.05) 100%);
+  border-left: 3px solid var(--vault-bridge-primary-color);
+}
+
+.vault-bridge-step-processing .vault-bridge-step-icon {
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vault-bridge-step-completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border-left: 3px solid var(--vault-bridge-success-color);
+}
+
+.vault-bridge-step-error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+  border-left: 3px solid var(--vault-bridge-danger-color);
 }
 
 /* 设置选项卡样式 */
@@ -340,65 +555,184 @@
 /* 编辑器样式 */
 .vault-bridge-edit-container {
   margin-bottom: 20px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vault-bridge-edit-header {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(129, 140, 248, 0.05) 100%);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  border-radius: var(--vault-bridge-border-radius);
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
 .vault-bridge-edit-info {
   margin-bottom: 12px;
-  padding: 12px;
-  background-color: rgba(245, 158, 11, 0.1);
-  border-left: 4px solid var(--vault-bridge-warning-color);
-  border-radius: var(--vault-bridge-border-radius);
+}
+
+.vault-bridge-edit-info-icon {
+  font-size: 1.5em;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.vault-bridge-edit-info-title {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--vault-bridge-primary-color);
+  vertical-align: middle;
+  display: inline-block;
+  margin-bottom: 8px;
 }
 
 .vault-bridge-edit-info-text {
-  margin: 0;
-  color: var(--vault-bridge-text-primary);
-  font-size: 0.95em;
+  margin: 8px 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+/* 编辑器包装器 */
+.vault-bridge-editor-wrapper {
+  position: relative;
+  border: 2px solid var(--vault-bridge-border-color);
+  border-radius: var(--vault-bridge-border-radius);
+  overflow: hidden;
+  background-color: var(--background-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: var(--vault-bridge-transition);
+}
+
+.vault-bridge-editor-wrapper:focus-within {
+  border-color: var(--vault-bridge-primary-color);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
 }
 
 .vault-bridge-edit-textarea {
   width: 100%;
-  min-height: 400px;
-  padding: 12px;
-  border: 1px solid var(--vault-bridge-border-color);
-  border-radius: var(--vault-bridge-border-radius);
-  font-family: 'Courier New', Courier, monospace;
+  min-height: 450px;
+  padding: 16px;
+  border: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   resize: vertical;
   background-color: var(--background-primary);
   color: var(--text-normal);
   transition: var(--vault-bridge-transition);
+  tab-size: 4;
 }
 
 .vault-bridge-edit-textarea:focus {
   outline: none;
-  border-color: var(--vault-bridge-primary-color);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
 }
 
+.vault-bridge-edit-textarea::placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* 编辑器底部状态栏 */
+.vault-bridge-editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--background-secondary);
+  border-top: 1px solid var(--vault-bridge-border-color);
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.vault-bridge-char-count,
+.vault-bridge-line-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vault-bridge-count-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.vault-bridge-count-value {
+  color: var(--vault-bridge-primary-color);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 快速操作按钮 */
 .vault-bridge-quick-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-top: 12px;
-  margin-bottom: 16px;
 }
 
 .vault-bridge-quick-action-button {
-  padding: 6px 12px;
-  border: 1px solid var(--vault-bridge-border-color);
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--vault-bridge-border-color);
   border-radius: var(--vault-bridge-border-radius);
-  background-color: transparent;
-  color: var(--vault-bridge-text-primary);
+  background: linear-gradient(135deg, var(--background-primary) 0%, var(--background-secondary) 100%);
+  color: var(--text-normal);
   cursor: pointer;
   font-size: 0.9em;
+  font-weight: 500;
   transition: var(--vault-bridge-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.vault-bridge-quick-action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.vault-bridge-quick-action-button:hover::before {
+  left: 100%;
 }
 
 .vault-bridge-quick-action-button:hover {
-  background-color: var(--vault-bridge-primary-color);
-  color: white;
-  border-color: var(--vault-bridge-primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+.vault-bridge-quick-local:hover {
+  border-color: var(--vault-bridge-info-color);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+  color: var(--vault-bridge-info-color);
+}
+
+.vault-bridge-quick-remote:hover {
+  border-color: var(--vault-bridge-success-color);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  color: var(--vault-bridge-success-color);
+}
+
+.vault-bridge-quick-action-button:active {
+  transform: translateY(0);
 }
 
 .vault-bridge-edit-button {

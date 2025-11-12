@@ -55,7 +55,7 @@ export default class VaultBridgePlugin extends Plugin {
         }
 
         // 在左侧工具栏添加图标
-        const ribbonIconEl = this.addRibbonIcon('cloud-sync', 'Vault Bridge', (evt: MouseEvent) => {
+        const ribbonIconEl = this.addRibbonIcon('sync', 'Vault Bridge', (evt: MouseEvent) => {
             if (this.settings.passphrase === '') {
                 new Notice('请先配置Vault Bridge插件');
                 return;
@@ -68,7 +68,7 @@ export default class VaultBridgePlugin extends Plugin {
             menu.addItem((item) => {
                 return item
                     .setTitle('初始化')
-                    .setIcon('webhook')
+                    .setIcon('settings')
                     .onClick(async () => {
                         const vaultName = this.app.vault.getName();
                         
@@ -109,7 +109,7 @@ export default class VaultBridgePlugin extends Plugin {
             menu.addItem((item) => {
                 return item
                     .setTitle('上传笔记')
-                    .setIcon('upload-cloud')
+                    .setIcon('upload')
                     .onClick(async () => {
                         try {
                             new Notice('准备上传笔记到区块链');
@@ -133,8 +133,11 @@ export default class VaultBridgePlugin extends Plugin {
                                             files, 
                                             this.getMnemonicWallet(), 
                                             this.getEpoch(), 
-                                            (message: string) => {
+                                            (message: string, progress?: number) => {
                                                 progressModal.updateMessage(message);
+                                                if (progress !== undefined) {
+                                                    progressModal.updateProgress(progress);
+                                                }
                                             },
                                             this.app
                                         );
@@ -160,7 +163,7 @@ export default class VaultBridgePlugin extends Plugin {
             menu.addItem((item) => {
                 return item
                     .setTitle('下载笔记')
-                    .setIcon('download-cloud')
+                    .setIcon('download')
                     .onClick(async () => {
                         try {
                             new Notice('准备从区块链下载笔记');
@@ -186,7 +189,20 @@ export default class VaultBridgePlugin extends Plugin {
                                     progressModal.updateMessage('正在下载文件...');
                                     
                                     let dataAdapter = this.app.vault.adapter;
-                                    await pullFromChain(vault, vaultPath, files, this.mnemonicWallet, dataAdapter, this.app);
+                                    await pullFromChain(
+                                        vault, 
+                                        vaultPath, 
+                                        files, 
+                                        this.mnemonicWallet, 
+                                        dataAdapter,
+                                        (message: string, progress?: number) => {
+                                            progressModal.updateMessage(message);
+                                            if (progress !== undefined) {
+                                                progressModal.updateProgress(progress);
+                                            }
+                                        },
+                                        this.app
+                                    );
                                     
                                     // 更新最后同步时间
                                     this.settings.lastSyncTimestamp = Date.now();
@@ -194,6 +210,7 @@ export default class VaultBridgePlugin extends Plugin {
                                     this.updateStatusBar();
                                     
                                     progressModal.updateMessage('下载完成!');
+                                    progressModal.updateProgress(100);
                                     setTimeout(() => {
                                         progressModal.close();
                                         new Notice('从区块链下载笔记完成');
@@ -207,6 +224,8 @@ export default class VaultBridgePlugin extends Plugin {
                         }
                     });
             });
+            
+            menu.addSeparator();
             
             // 同步状态按钮
             menu.addItem((item) => {
@@ -244,6 +263,9 @@ export default class VaultBridgePlugin extends Plugin {
         this.statusBarItem = this.addStatusBarItem();
         this.updateStatusBar();
 
+        // 添加命令到命令面板
+        this.addCommands();
+
         // 添加设置选项卡
         this.addSettingTab(new VaultBridgeSettingTab(this.app, this));
 
@@ -251,6 +273,221 @@ export default class VaultBridgePlugin extends Plugin {
         if (this.settings.autoSync) {
             this.startAutoSync();
         }
+    }
+    
+    // 添加命令到命令面板
+    addCommands() {
+        // 上传命令
+        this.addCommand({
+            id: 'upload-notes',
+            name: '上传笔记到区块链',
+            callback: async () => {
+                if (this.settings.passphrase === '') {
+                    new Notice('请先在设置中配置助记词');
+                    return;
+                }
+                await this.performUpload();
+            }
+        });
+        
+        // 下载命令
+        this.addCommand({
+            id: 'download-notes',
+            name: '从区块链下载笔记',
+            callback: async () => {
+                if (this.settings.passphrase === '') {
+                    new Notice('请先在设置中配置助记词');
+                    return;
+                }
+                await this.performDownload();
+            }
+        });
+        
+        // 初始化命令
+        this.addCommand({
+            id: 'initialize-vault',
+            name: '初始化 Vault',
+            callback: async () => {
+                if (this.settings.passphrase === '') {
+                    new Notice('请先在设置中配置助记词');
+                    return;
+                }
+                await this.performInitialize();
+            }
+        });
+        
+        // 查看同步状态命令
+        this.addCommand({
+            id: 'sync-status',
+            name: '查看同步状态',
+            callback: () => {
+                this.showSyncStatus();
+            }
+        });
+    }
+    
+    // 执行上传
+    async performUpload() {
+        try {
+            new Notice('准备上传笔记到区块链');
+            const vaultPath = (this.app.vault.adapter as FileSystemAdapter).getBasePath();
+            const vaultName = this.app.vault.getName();
+            const files = this.app.vault.getMarkdownFiles();
+            
+            const confirmModal = new ConfirmationModal(
+                this.app,
+                '上传笔记',
+                `确定要上传 ${files.length} 个笔记文件到区块链吗？`,
+                async () => {
+                    const progressModal = new ProgressModal(this.app, '上传进行中');
+                    progressModal.open();
+                    
+                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                    if (vault) {
+                        await pushToChain(
+                            vault, 
+                            vaultPath, 
+                            files, 
+                            this.getMnemonicWallet(), 
+                            this.getEpoch(), 
+                            (message: string, progress?: number) => {
+                                progressModal.updateMessage(message);
+                                if (progress !== undefined) {
+                                    progressModal.updateProgress(progress);
+                                }
+                            },
+                            this.app
+                        );
+                        
+                        this.settings.lastSyncTimestamp = Date.now();
+                        await this.saveSettings();
+                        this.updateStatusBar();
+                        
+                        progressModal.close();
+                    }
+                }
+            );
+            confirmModal.open();
+        } catch (e) {
+            console.error('上传过程出错', e);
+            new Notice('上传过程出错，请查看控制台');
+        }
+    }
+    
+    // 执行下载
+    async performDownload() {
+        try {
+            new Notice('准备从区块链下载笔记');
+            const vaultPath = (this.app.vault.adapter as FileSystemAdapter).getBasePath();
+            const vaultName = this.app.vault.getName();
+            const files = this.app.vault.getMarkdownFiles();
+            
+            const confirmModal = new ConfirmationModal(
+                this.app,
+                '下载笔记',
+                '确定要从区块链下载笔记吗？这可能会覆盖本地文件。',
+                async () => {
+                    const progressModal = new ProgressModal(this.app, '下载进行中');
+                    progressModal.open();
+                    
+                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                    if (!vault) {
+                        progressModal.close();
+                        new Notice('下载失败，请先初始化');
+                        return;
+                    }
+                    
+                    progressModal.updateMessage('正在下载文件...');
+                    
+                    let dataAdapter = this.app.vault.adapter;
+                    await pullFromChain(
+                        vault, 
+                        vaultPath, 
+                        files, 
+                        this.mnemonicWallet, 
+                        dataAdapter,
+                        (message: string, progress?: number) => {
+                            progressModal.updateMessage(message);
+                            if (progress !== undefined) {
+                                progressModal.updateProgress(progress);
+                            }
+                        },
+                        this.app
+                    );
+                    
+                    this.settings.lastSyncTimestamp = Date.now();
+                    await this.saveSettings();
+                    this.updateStatusBar();
+                    
+                    progressModal.updateMessage('下载完成!');
+                    progressModal.updateProgress(100);
+                    setTimeout(() => {
+                        progressModal.close();
+                        new Notice('从区块链下载笔记完成');
+                    }, 1500);
+                }
+            );
+            confirmModal.open();
+        } catch (e) {
+            console.error('下载过程出错', e);
+            new Notice('下载过程出错，请查看控制台');
+        }
+    }
+    
+    // 执行初始化
+    async performInitialize() {
+        const vaultName = this.app.vault.getName();
+        
+        const confirmModal = new ConfirmationModal(
+            this.app,
+            '初始化Vault',
+            `确定要初始化名为 "${vaultName}" 的Vault吗？`,
+            async () => {
+                try {
+                    const progressModal = new ProgressModal(this.app, '初始化进行中');
+                    progressModal.open();
+                    progressModal.updateMessage('正在连接区块链...');
+                    
+                    this.vault = await initVault(vaultName, this.getMnemonicWallet());
+                    
+                    if (this.vault) {
+                        progressModal.updateProgress(100);
+                        progressModal.updateMessage('初始化成功!');
+                        setTimeout(() => {
+                            progressModal.close();
+                            new Notice(`初始化成功，VaultID: ${this.vault?.id}`);
+                        }, 1500);
+                    } else {
+                        progressModal.close();
+                        new Notice('初始化失败');
+                    }
+                } catch (error) {
+                    console.error('初始化过程出错', error);
+                    new Notice('初始化过程出错，请查看控制台');
+                }
+            }
+        );
+        confirmModal.open();
+    }
+    
+    // 显示同步状态
+    showSyncStatus() {
+        let lastSync = '从未';
+        if (this.settings.lastSyncTimestamp > 0) {
+            const date = new Date(this.settings.lastSyncTimestamp);
+            lastSync = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+        }
+        
+        const modal = new VaultSyncModal(
+            this.app,
+            '同步状态信息',
+            `最后同步时间: ${lastSync}\n` +
+            `钱包地址: ${this.settings.address}\n` +
+            `存储时长: ${this.settings.epoch} epochs\n` +
+            `自动同步: ${this.settings.autoSync ? '开启' : '关闭'}\n` +
+            `同步间隔: ${this.settings.autoSyncInterval} 分钟`
+        );
+        modal.open();
     }
     
     // 添加样式
@@ -336,8 +573,8 @@ export default class VaultBridgePlugin extends Plugin {
                             files, 
                             this.getMnemonicWallet(), 
                             this.getEpoch(), 
-                            (message: string) => {
-                                console.log(`自动同步: ${message}`);
+                            (message: string, progress?: number) => {
+                                console.log(`自动同步: ${message} ${progress !== undefined ? progress + '%' : ''}`);
                             },
                             this.app
                         );
@@ -421,6 +658,54 @@ class VaultBridgeSettingTab extends PluginSettingTab {
         containerEl.classList.add('vault-bridge-settings');
         
         containerEl.createEl('h2', { text: 'Vault Bridge 设置' });
+        
+        // 快捷操作区域
+        containerEl.createEl('h3', { text: '快捷操作' });
+        
+        const quickActionsDiv = containerEl.createDiv('vault-bridge-quick-actions');
+        quickActionsDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;';
+        
+        // 上传按钮
+        const uploadButton = quickActionsDiv.createEl('button', { text: '⬆️ 上传笔记' });
+        uploadButton.style.cssText = 'padding: 10px 20px; cursor: pointer; background: var(--interactive-accent); color: var(--text-on-accent); border: none; border-radius: 5px;';
+        uploadButton.onclick = async () => {
+            if (this.plugin.settings.passphrase === '') {
+                new Notice('请先配置助记词');
+                return;
+            }
+            await this.plugin.performUpload();
+        };
+        
+        // 下载按钮
+        const downloadButton = quickActionsDiv.createEl('button', { text: '⬇️ 下载笔记' });
+        downloadButton.style.cssText = 'padding: 10px 20px; cursor: pointer; background: var(--interactive-accent); color: var(--text-on-accent); border: none; border-radius: 5px;';
+        downloadButton.onclick = async () => {
+            if (this.plugin.settings.passphrase === '') {
+                new Notice('请先配置助记词');
+                return;
+            }
+            await this.plugin.performDownload();
+        };
+        
+        // 初始化按钮
+        const initButton = quickActionsDiv.createEl('button', { text: '🔧 初始化' });
+        initButton.style.cssText = 'padding: 10px 20px; cursor: pointer; background: var(--interactive-normal); color: var(--text-normal); border: 1px solid var(--background-modifier-border); border-radius: 5px;';
+        initButton.onclick = async () => {
+            if (this.plugin.settings.passphrase === '') {
+                new Notice('请先配置助记词');
+                return;
+            }
+            await this.plugin.performInitialize();
+        };
+        
+        // 状态按钮
+        const statusButton = quickActionsDiv.createEl('button', { text: 'ℹ️ 同步状态' });
+        statusButton.style.cssText = 'padding: 10px 20px; cursor: pointer; background: var(--interactive-normal); color: var(--text-normal); border: 1px solid var(--background-modifier-border); border-radius: 5px;';
+        statusButton.onclick = () => {
+            this.plugin.showSyncStatus();
+        };
+        
+        containerEl.createEl('h3', { text: '基础设置' });
         
         // 助记词设置
         new Setting(containerEl)

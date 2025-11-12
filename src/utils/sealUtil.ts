@@ -1,4 +1,4 @@
-import { EncryptedObject, getAllowlistedKeyServers, NoAccessError, SealClient, SessionKey } from '@mysten/seal';
+import { EncryptedObject, NoAccessError, SealClient, SessionKey } from '@mysten/seal';
 import { fromHex, toHex } from '@mysten/sui/utils';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
@@ -39,59 +39,6 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
     const SUI_VIEW_TX_URL = `https://suiscan.xyz/testnet/tx`;
     const SUI_VIEW_OBJECT_URL = `https://suiscan.xyz/testnet/object`;
 
-    const services: WalrusService[] = [
-        {
-            id: 'service1',
-            name: 'walrus.space',
-            publisherUrl: 'https://walrus.space/publisher',
-            aggregatorUrl: 'https://walrus.space/aggregator',
-        },
-        {
-            id: 'service2',
-            name: 'staketab.org',
-            publisherUrl: 'https://staketab.org/publisher',
-            aggregatorUrl: 'https://staketab.org/aggregator',
-        },
-        {
-            id: 'service3',
-            name: 'redundex.com',
-            publisherUrl: 'https://redundex.com/publisher',
-            aggregatorUrl: 'https://redundex.com/aggregator',
-        },
-        {
-            id: 'service4',
-            name: 'nodes.guru',
-            publisherUrl: 'https://nodes.guru/publisher',
-            aggregatorUrl: 'https://nodes.guru/aggregator',
-        },
-        {
-            id: 'service5',
-            name: 'banansen.dev',
-            publisherUrl: 'https://banansen.dev/publisher',
-            aggregatorUrl: 'https://banansen.dev/aggregator',
-        },
-        {
-            id: 'service6',
-            name: 'everstake.one',
-            publisherUrl: 'https://everstake.one/publisher',
-            aggregatorUrl: 'https://everstake.one/aggregator',
-        },
-    ];
-    
-    let selectedService = services[0].id;
-    
-    function getAggregatorUrl(path: string): string {
-        const service = services.find((s) => s.id === selectedService);
-        const cleanPath = path.replace(/^\/+/, '').replace(/^v1\//, '');
-        return `${service?.aggregatorUrl.replace(/\/+$/, '')}/v1/${cleanPath}`;
-    }
-
-    function getPublisherUrl(path: string): string {
-        const service = services.find((s) => s.id === selectedService);
-        const cleanPath = path.replace(/^\/+/, '').replace(/^v1\//, '');
-        return `${service?.publisherUrl.replace(/\/+$/, '')}/v1/${cleanPath}`;
-    }
-
     const handleSubmit = async (file: File, epoch: number): Promise<UploadResult> => {
         if (!file) {
             throw new Error('未选择文件');
@@ -107,13 +54,15 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
                     
                     const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
                     // 使用类型断言解决版本不兼容问题
+                    const serverObjectIds = ["0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75", "0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8"];
                     const client = new SealClient({
-                        suiClient: suiClient as any, // 强制类型转换来处理版本不兼容
-                        serverObjectIds: getAllowlistedKeyServers('testnet').map(id => [
-                            id, 1
-                        ] as [string, number]),
-                        verifyKeyServers: false,
-                      });
+                      suiClient,
+                      serverConfigs: serverObjectIds.map((id) => ({
+                        objectId: id,
+                        weight: 1,
+                      })),
+                      verifyKeyServers: false,
+                    });
                     
                     const nonce = crypto.getRandomValues(new Uint8Array(5));
                     const policyObjectBytes = fromHex(vaultId);
@@ -143,26 +92,6 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
     const storeBlob = async(encryptedData: Uint8Array, epoch: number) => {
         try {
             console.log("尝试在Walrus服务器存储数据");
-            // 使用 getPublisherUrl 来构建URL
-            const url = getPublisherUrl(`/v1/blobs?epochs=${epoch}`);
-            
-            // 直接使用 encryptedData 作为请求体
-            const response = await fetch(url, {
-                method: 'PUT',
-                body: new Blob([encryptedData as BlobPart]), // 将 Uint8Array 包装在 Blob 中
-            });
-            
-            if (response.status === 200) {
-                const info = await response.json();
-                return { info };
-            } else {
-                console.error(`存储失败，状态码: ${response.status}`);
-                throw new Error('在Walrus上发布数据时出错，请选择其他Walrus服务。');
-            }
-        } catch(e) {
-            console.error("在Walrus上发布数据时出错：", e);
-            
-            // 如果第一个服务失败，尝试备用服务列表
             let urls = [
                 "https://publisher.walrus-testnet.walrus.space",
                 "https://wal-publisher-testnet.staketab.org",
@@ -186,10 +115,11 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
                 "http://walrus-testnet.stakingdefenseleague.com:9001",
                 "http://walrus.sui.thepassivetrust.com:9001",
             ];
-            
+            // 使用 getPublisherUrl 来构建URL
+            //const url = getPublisherUrl(`/v1/blobs?epochs=${epoch}`);
             for (let url of urls) {
                 try {
-                    console.log("尝试在备用服务器存储数据:", url);
+                    console.log("尝试服务器存储数据:", url);
                     const response = await fetch(url + "/v1/blobs?epochs=" + epoch, {
                         method: 'PUT',
                         body: new Blob([encryptedData as BlobPart]), // 将 Uint8Array 包装在 Blob 中
@@ -200,9 +130,16 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
                         return { info };
                     }
                 } catch(e) {
-                    console.error("备用服务器存储失败，尝试下一个URL", e);
+                    console.error("服务器存储失败，尝试下一个URL", e);
                 }
             }
+        } catch(e) {
+            console.error("在Walrus上发布数据时出错：", e);
+            
+            // 如果第一个服务失败，尝试备用服务列表
+            
+            
+
         }
         // 如果所有服务器都尝试失败，返回null
         return null;
@@ -219,7 +156,7 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
                 suiRefType: 'Previous Sui Certified Event',
                 suiRef: storage_info.alreadyCertified.event.txDigest,
                 suiBaseUrl: SUI_VIEW_TX_URL,
-                blobUrl: getAggregatorUrl(`/v1/blobs/${storage_info.alreadyCertified.blobId}`),
+                blobUrl: `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${storage_info.alreadyCertified.blobId}`,
                 suiUrl: `${SUI_VIEW_OBJECT_URL}/${storage_info.alreadyCertified.event.txDigest}`,
                 isImage: media_type.startsWith('image'),
             };
@@ -231,7 +168,7 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
                 suiRefType: 'Associated Sui Object',
                 suiRef: storage_info.newlyCreated.blobObject.id,
                 suiBaseUrl: SUI_VIEW_OBJECT_URL,
-                blobUrl: getAggregatorUrl(`/v1/blobs/${storage_info.newlyCreated.blobObject.blobId}`),
+                blobUrl: `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${storage_info.newlyCreated.blobObject.blobId}`,
                 suiUrl: `${SUI_VIEW_OBJECT_URL}/${storage_info.newlyCreated.blobObject.id}`,
                 isImage: media_type.startsWith('image'),
             };
@@ -243,17 +180,19 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
         return info;
     };
 
-    async function handlePublish(title: string, end_epoch: number, parent_dir: string, blob_id: string) {
+    async function handlePublish(title: string, end_epoch: number, parent_dir: string | any, blob_id: string) {
         const tx = new Transaction();
         tx.setSender(wallet.getAddress());
         
+        // 判断 parent_dir 是字符串ID还是交易中的对象引用
+        let parentDirArg = typeof parent_dir === 'string' ? tx.object(parent_dir) : parent_dir;
         let fileResult = tx.moveCall({
-            target: PACKAGE_ID+'::perlite_sync::new_file',
-            arguments: [tx.pure.string(title), tx.pure.string(blob_id), tx.pure.u64(end_epoch), tx.object(parent_dir), tx.object("0x6")],
+            target: PACKAGE_ID+'::coral_sync::new_file',
+            arguments: [tx.pure.string(title), tx.pure.string(blob_id), tx.pure.u64(end_epoch), parentDirArg, tx.object("0x6")],
         });
 
         tx.moveCall({
-            target: `${PACKAGE_ID}::perlite_sync::transfer_file`,
+            target: `${PACKAGE_ID}::coral_sync::transfer_file`,
             arguments: [tx.object(fileResult), tx.pure.address(wallet.getAddress())],
         });
         
@@ -279,19 +218,22 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
 
     async function downloadFile(file: VaultFile, filePath: string, adapter: DataAdapter) {
         const TTL_MIN = 10;
-        const sessionKey = new SessionKey({
+        const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
+        const serverObjectIds = ["0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75", "0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8"];
+        const sessionKey = await SessionKey.create({
             address: wallet.getAddress(),
             packageId,
             ttlMin: TTL_MIN,
+            suiClient,
         });
 
         try {
-            const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
             const client = new SealClient({
-                suiClient: suiClient as any, // 强制类型转换来处理版本不兼容
-                serverObjectIds: getAllowlistedKeyServers('testnet').map(id => [
-                    id, 1
-                ] as [string, number]),
+                suiClient: suiClient,
+                serverConfigs: serverObjectIds.map((id) => ({
+                    objectId: id,
+                    weight: 1,
+                  })),
                 verifyKeyServers: false,
             });
             
@@ -443,7 +385,7 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
     function constructMoveCall(packageId: string, fileId: string): MoveCallConstructor {
         return (tx: Transaction, id: string) => {
             tx.moveCall({
-                target: PACKAGE_ID+`::perlite_sync::seal_approve`,
+                target: PACKAGE_ID+`::coral_sync::seal_approve`,
                 arguments: [tx.pure.vector('u8', fromHex(id)), tx.object(fileId)],
             });
         };
@@ -462,19 +404,23 @@ export function SealUtil({ vaultId, moduleName, packageId, wallet}: WalrusUpload
     
     async function downloadFileContent(file: VaultFile): Promise<string> {
         const TTL_MIN = 10;
-        const sessionKey = new SessionKey({
+        const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
+        const serverObjectIds = ["0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75", "0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8"];
+        const sessionKey = await SessionKey.create({
             address: wallet.getAddress(),
             packageId,
             ttlMin: TTL_MIN,
+            suiClient,
         });
 
         try {
             const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
             const client = new SealClient({
                 suiClient: suiClient as any,
-                serverObjectIds: getAllowlistedKeyServers('testnet').map(id => [
-                    id, 1
-                ] as [string, number]),
+                serverConfigs: serverObjectIds.map((id) => ({
+                    objectId: id,
+                    weight: 1,
+                  })),
                 verifyKeyServers: false,
             });
             

@@ -13,7 +13,7 @@ if you want to view the source, please visit the github repository of this plugi
 const prod = process.argv[2] === 'production';
 
 // 获取输出目录参数
-let outDir = './';
+let outDir = './dist';
 for (let i = 0; i < process.argv.length; i++) {
     const arg = process.argv[i];
     // 支持两种格式: --outdir=./dist 或 --outdir ./dist
@@ -30,6 +30,32 @@ if (outDir !== './') {
         fs.mkdirSync(outDir, { recursive: true });
     }
 }
+
+// CSS 插件：将 CSS 转换为 JavaScript 字符串并注入到 DOM
+const cssPlugin = {
+    name: 'css',
+    setup(build) {
+        build.onLoad({ filter: /\.css$/ }, async (args) => {
+            const css = await fs.promises.readFile(args.path, 'utf8');
+            
+            // 将 CSS 内容转换为可以注入 DOM 的 JavaScript 代码
+            const contents = `
+                (function() {
+                    if (typeof document !== 'undefined') {
+                        const style = document.createElement('style');
+                        style.textContent = ${JSON.stringify(css)};
+                        document.head.appendChild(style);
+                    }
+                })();
+            `;
+            
+            return {
+                contents,
+                loader: 'js',
+            };
+        });
+    },
+};
 
 const context = await esbuild.context({
     banner: {
@@ -59,6 +85,7 @@ const context = await esbuild.context({
     sourcemap: prod ? false : 'inline',
     treeShaking: true,
     outfile: path.join(outDir, 'main.js'),
+    plugins: [cssPlugin], // 添加 CSS 插件
 });
 
 if (prod) {
