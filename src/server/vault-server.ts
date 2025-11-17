@@ -1,6 +1,6 @@
 import { SuiGraphQLClient } from '@mysten/sui/graphql';
 import { graphql } from '@mysten/sui/graphql/schemas/latest';
-import { DIR_TYPE, FILE_TYPE, GRAPHQL_URL } from '../constant';
+import { PACKAGE_ID, GRAPHQL_URL } from '../constant';
 
 export type Directory = {
     id: string;
@@ -59,13 +59,15 @@ const queryByAddressAndType = graphql(`
     }
 `);
 
-export async function getVaultByAddress(address: string, vaultName: string): Promise<Vault | undefined> {
-    let dirs = await getUserOwnDirectory(address, GRAPHQL_URL);
+export async function getVaultByAddress(address: string, vaultName: string, packageId: string = PACKAGE_ID): Promise<Vault | undefined> {
+    console.log("getVaultByAddress 使用 packageId:", packageId);
+    let dirs = await getUserOwnDirectory(address, GRAPHQL_URL, packageId);
+    console.log("getUserOwnDirectory dirs:", dirs);
     if (dirs.length === 0) {
         return undefined;
     }
     
-    let files = await getUserOwnFile(address, GRAPHQL_URL);
+    let files = await getUserOwnFile(address, GRAPHQL_URL, packageId);
     const dirMap = new Map<string, Directory>();
     const parentMap = new Map<string, Directory[]>();
     const fileMap = new Map<string, File[]>();
@@ -129,10 +131,10 @@ export async function getVaultByAddress(address: string, vaultName: string): Pro
     }
 }
 
-async function getUserOwnDirectory(address: string, graphqlUrl: string): Promise<Array<Directory>> {
+async function getUserOwnDirectory(address: string, graphqlUrl: string, packageId: string = PACKAGE_ID): Promise<Array<Directory>> {
     const suiGraphQLClient = new SuiGraphQLClient({ url: graphqlUrl });
-    const type = DIR_TYPE;
-    console.log("查询目录:", type);
+    const type = packageId + "::coral_sync::Directory";
+    console.log("查询目录:", type, "使用 packageId:", packageId);
     
     let endCursor: string | null | undefined = null;
     const result: Directory[] = [];
@@ -166,9 +168,10 @@ async function getUserOwnDirectory(address: string, graphqlUrl: string): Promise
     return result;
 }
 
-async function getUserOwnFile(address: string, graphqlUrl: string): Promise<Array<File>> {
+async function getUserOwnFile(address: string, graphqlUrl: string, packageId: string = PACKAGE_ID): Promise<Array<File>> {
     const suiGraphQLClient = new SuiGraphQLClient({ url: graphqlUrl });
-    const type = FILE_TYPE;
+    const type = packageId + "::coral_sync::File";
+    console.log("查询文件:", type, "使用 packageId:", packageId);
     
     let endCursor: string | null | undefined = null;
     const result: File[] = [];

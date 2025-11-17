@@ -7,11 +7,12 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui/client';
 import { SealUtil } from './utils/sealUtil';
 import { VaultSyncModal, DiffModal } from './components/modal';
 
-export async function initVault(vaultName: string, wallet: MnemonicWallet): Promise<Vault | undefined> {
+export async function initVault(vaultName: string, wallet: MnemonicWallet, packageId: string = PACKAGE_ID): Promise<Vault | undefined> {
     // 初始化，先获取到vault的名称，去链上找到该钱包是否有该vault
     // 有就提示同步，否则提示链上无对应对象，需要先上传
     const address = wallet.getAddress();
-    let vault: Vault | undefined = await getVaultByAddress(address, vaultName);
+    console.log("initVault 使用 packageId:", packageId);
+    let vault: Vault | undefined = await getVaultByAddress(address, vaultName, packageId);
     console.log("初始化vault:", vault);
     
     if (!vault) {
@@ -21,17 +22,17 @@ export async function initVault(vaultName: string, wallet: MnemonicWallet): Prom
         tx.setGasBudget(10000000);
         
         const rootDir = tx.moveCall({
-            package: PACKAGE_ID,
+            package: packageId,
             module: 'coral_sync',
             function: 'new_root_directory',
             arguments: [tx.pure.string(vaultName), tx.object("0x6")],
         });
         
         tx.moveCall({
-            package: PACKAGE_ID,
+            package: packageId,
             module: 'coral_sync',
             function: 'transfer_dir',
-            arguments: [tx.object(rootDir), tx.pure.address(address)],
+            arguments: [rootDir, tx.pure.address(address)],
         });
         
         const suiClient = new SuiClient({ url: getFullnodeUrl(NET_WORK) });
@@ -47,10 +48,10 @@ export async function initVault(vaultName: string, wallet: MnemonicWallet): Prom
         } catch (e) {
             console.log("交易构建错误:", e);
         }
-        
-        vault = await getVaultByAddress(address, vaultName);
+        sleep(1000);
+        vault = await getVaultByAddress(address, vaultName, packageId);
         if (!vault) {
-            return await getVaultByAddress(address, vaultName);
+            return await getVaultByAddress(address, vaultName, packageId);
         }
     }
     
@@ -64,7 +65,8 @@ export async function pushToChain(
     wallet: MnemonicWallet, 
     epoch: number, 
     notifyProgress: (message: string, progress?: number) => void, 
-    app: App
+    app: App,
+    packageId: string = PACKAGE_ID
 ) {
     console.log("推送vault", vault.name, vaultLocalPath);
     let address = wallet.getAddress();
@@ -80,13 +82,13 @@ export async function pushToChain(
         let waitTransferFiles = [];
         let tx = new Transaction();
         tx.setSender(address);
-        
+        console.log("packageId:", packageId);
         // 上传文件
         let props = {
             vaultId: vaultId,
             moduleName: 'coral_sync',
             wallet: wallet,
-            packageId: PACKAGE_ID,
+            packageId: packageId,
         };
         const { handleSubmit } = SealUtil(props);
         
@@ -125,8 +127,9 @@ export async function pushToChain(
                     notifyProgress(`处理目录: ${tempPath}`, Math.floor((processedFiles / totalFiles) * 80));
                     // 判断 parent 是字符串ID还是交易中的对象引用
                     let parentArg = typeof parent === 'string' ? tx.object(parent) : parent;
+                    console.log(`创建目录 ${currDir}, parent 类型: ${typeof parent}, 是否为字符串: ${typeof parent === 'string'}`);
                     let par = tx.moveCall({
-                        package: PACKAGE_ID,
+                        package: packageId,
                         module: 'coral_sync',
                         function: 'new_directory',
                         arguments: [tx.pure.string(currDir), parentArg, tx.object("0x6")],
@@ -154,37 +157,44 @@ export async function pushToChain(
                 }), epoch);
                 
                 if (result) {
+                    console.log("result", result);
                     processedFiles++;
                     const newProgress = Math.floor((processedFiles / totalFiles) * 80);
                     notifyProgress(`文件 ${fileName} 已保存至Walrus (${processedFiles}/${totalFiles})`, newProgress);
                     // 判断 parent_dir 是字符串ID还是交易中的对象引用
+                    console.log("parent_dir", parent_dir);
                     let parentDirArg = typeof parent_dir === 'string' ? tx.object(parent_dir) : parent_dir;
+                    console.log("parent_dir", parentDirArg);
+                    console.log(`创建文件 ${fileName}, parent_dir 类型: ${typeof parent_dir}, 是否为字符串: ${typeof parent_dir === 'string'}`);
                     let fileResult = tx.moveCall({
-                        target: PACKAGE_ID + '::coral_sync::new_file',
+                        target: packageId + '::coral_sync::new_file',
                         arguments: [tx.pure.string(fileName), tx.pure.string(result.blobId), tx.pure.u64(result.endEpoch), parentDirArg, tx.object("0x6")],
                     });
+                    console.log("fileResult", fileResult);
                     waitTransferFiles.push(fileResult);
                 }
             }
         }
         
-        // 处理目录
+        // 处理目录 - dir 是 moveCall 返回的 TransactionArgument，直接使用，不要包装
         waitTransferDirs.forEach(dir => {
+            console.log("transfer_dir (TransactionArgument):", dir);
             tx.moveCall({
-                package: PACKAGE_ID,
+                package: packageId,
                 module: 'coral_sync',
                 function: 'transfer_dir',
-                arguments: [tx.object(dir), tx.pure.address(address)],
+                arguments: [dir, tx.pure.address(address)],
             });
         });
         
-        // 处理文件
+        // 处理文件 - file 是 moveCall 返回的 TransactionArgument，直接使用，不要包装
         waitTransferFiles.forEach(file => {
+            console.log("transfer_file (TransactionArgument):", file);
             tx.moveCall({
-                package: PACKAGE_ID,
+                package: packageId,
                 module: 'coral_sync',
                 function: 'transfer_file',
-                arguments: [tx.object(file), tx.pure.address(address)],
+                arguments: [file, tx.pure.address(address)],
             });
         });
         
@@ -226,7 +236,8 @@ export async function pullFromChain(
     wallet: MnemonicWallet, 
     adapter: DataAdapter,
     notifyProgress?: (message: string, progress?: number) => void,
-    app?: App
+    app?: App,
+    packageId: string = PACKAGE_ID
 ) {
     // 下载，先获取到vault的名称，去链上找该钱包是否有该vault
     // 有，判断是否有更新
@@ -235,7 +246,7 @@ export async function pullFromChain(
         vaultId: vaultId,
         moduleName: 'coral_sync',
         wallet: wallet,
-        packageId: PACKAGE_ID,
+        packageId: packageId,
     };
 
     const { downloadFile, downloadFileContent } = SealUtil(props);

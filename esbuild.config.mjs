@@ -12,8 +12,10 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = process.argv[2] === 'production';
 
-// 获取输出目录参数
+// 获取输出目录参数和开发者模式参数
 let outDir = './dist';
+let enableDevMode = true;
+
 for (let i = 0; i < process.argv.length; i++) {
     const arg = process.argv[i];
     // 支持两种格式: --outdir=./dist 或 --outdir ./dist
@@ -22,7 +24,15 @@ for (let i = 0; i < process.argv.length; i++) {
     } else if (arg === '--outdir' && i + 1 < process.argv.length) {
         outDir = process.argv[i + 1];
     }
+    // 支持开发者模式参数: --dev-mode
+    if (arg === '--dev-mode') {
+        enableDevMode = true;
+    }
 }
+
+console.log(`构建模式: ${prod ? '生产' : '开发'}`);
+console.log(`开发者模式: ${enableDevMode ? '启用' : '禁用'}`);
+console.log(`输出目录: ${outDir}`);
 
 // 确保输出目录存在
 if (outDir !== './') {
@@ -86,6 +96,9 @@ const context = await esbuild.context({
     treeShaking: true,
     outfile: path.join(outDir, 'main.js'),
     plugins: [cssPlugin], // 添加 CSS 插件
+    define: {
+        'ENABLE_DEV_MODE': JSON.stringify(enableDevMode), // 定义开发者模式环境变量
+    },
 });
 
 if (prod) {

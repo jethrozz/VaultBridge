@@ -3,6 +3,10 @@ import { MnemonicWallet } from './mnemonic-wallet';
 import { initVault, pushToChain, pullFromChain } from './vault-sync';
 import { VaultSyncModal, ConfirmationModal, ProgressModal } from './components/modal';
 import { Vault } from './server/vault-server';
+import * as Constants from './constant';
+
+// 声明环境变量类型
+declare const ENABLE_DEV_MODE: boolean;
 
 // 插件设置接口
 interface VaultBridgeSettings {
@@ -12,6 +16,8 @@ interface VaultBridgeSettings {
     lastSyncTimestamp: number;
     autoSync: boolean;
     autoSyncInterval: number; // 以分钟为单位
+    debugMode: boolean; // 调试模式开关
+    customPackageId: string; // 自定义PackageId
 }
 
 // 默认设置
@@ -21,7 +27,9 @@ const DEFAULT_SETTINGS: VaultBridgeSettings = {
     epoch: 10,
     lastSyncTimestamp: 0,
     autoSync: false,
-    autoSyncInterval: 60
+    autoSyncInterval: 60,
+    debugMode: false,
+    customPackageId: ''
 }
 
 export default class VaultBridgePlugin extends Plugin {
@@ -31,6 +39,14 @@ export default class VaultBridgePlugin extends Plugin {
     epoch: number;
     autoSyncIntervalId: number | null = null;
     statusBarItem: HTMLElement;
+    
+    // 获取当前使用的PackageId
+    getPackageId(): string {
+        if (this.settings.debugMode && this.settings.customPackageId) {
+            return this.settings.customPackageId;
+        }
+        return Constants.PACKAGE_ID;
+    }
     
     async onload() {
         await this.loadSettings();
@@ -82,7 +98,7 @@ export default class VaultBridgePlugin extends Plugin {
                                     progressModal.open();
                                     progressModal.updateMessage('正在连接区块链...');
                                     
-                                    this.vault = await initVault(vaultName, this.getMnemonicWallet());
+                                    this.vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                                     
                                     if (this.vault) {
                                         progressModal.updateProgress(100);
@@ -125,7 +141,7 @@ export default class VaultBridgePlugin extends Plugin {
                                     const progressModal = new ProgressModal(this.app, '上传进行中');
                                     progressModal.open();
                                     
-                                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                                    let vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                                     if (vault) {
                                         await pushToChain(
                                             vault, 
@@ -139,7 +155,8 @@ export default class VaultBridgePlugin extends Plugin {
                                                     progressModal.updateProgress(progress);
                                                 }
                                             },
-                                            this.app
+                                            this.app,
+                                            this.getPackageId()
                                         );
                                         
                                         // 更新最后同步时间
@@ -179,7 +196,7 @@ export default class VaultBridgePlugin extends Plugin {
                                     const progressModal = new ProgressModal(this.app, '下载进行中');
                                     progressModal.open();
                                     
-                                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                                    let vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                                     if (!vault) {
                                         progressModal.close();
                                         new Notice('下载失败，请先初始化');
@@ -201,7 +218,8 @@ export default class VaultBridgePlugin extends Plugin {
                                                 progressModal.updateProgress(progress);
                                             }
                                         },
-                                        this.app
+                                        this.app,
+                                        this.getPackageId()
                                     );
                                     
                                     // 更新最后同步时间
@@ -342,7 +360,7 @@ export default class VaultBridgePlugin extends Plugin {
                     const progressModal = new ProgressModal(this.app, '上传进行中');
                     progressModal.open();
                     
-                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                    let vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                     if (vault) {
                         await pushToChain(
                             vault, 
@@ -356,7 +374,8 @@ export default class VaultBridgePlugin extends Plugin {
                                     progressModal.updateProgress(progress);
                                 }
                             },
-                            this.app
+                            this.app,
+                            this.getPackageId()
                         );
                         
                         this.settings.lastSyncTimestamp = Date.now();
@@ -390,7 +409,7 @@ export default class VaultBridgePlugin extends Plugin {
                     const progressModal = new ProgressModal(this.app, '下载进行中');
                     progressModal.open();
                     
-                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                    let vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                     if (!vault) {
                         progressModal.close();
                         new Notice('下载失败，请先初始化');
@@ -412,7 +431,8 @@ export default class VaultBridgePlugin extends Plugin {
                                 progressModal.updateProgress(progress);
                             }
                         },
-                        this.app
+                        this.app,
+                        this.getPackageId()
                     );
                     
                     this.settings.lastSyncTimestamp = Date.now();
@@ -448,7 +468,7 @@ export default class VaultBridgePlugin extends Plugin {
                     progressModal.open();
                     progressModal.updateMessage('正在连接区块链...');
                     
-                    this.vault = await initVault(vaultName, this.getMnemonicWallet());
+                    this.vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                     
                     if (this.vault) {
                         progressModal.updateProgress(100);
@@ -565,7 +585,7 @@ export default class VaultBridgePlugin extends Plugin {
                     const vaultName = this.app.vault.getName();
                     const files = this.app.vault.getMarkdownFiles();
                     
-                    let vault = await initVault(vaultName, this.getMnemonicWallet());
+                    let vault = await initVault(vaultName, this.getMnemonicWallet(), this.getPackageId());
                     if (vault) {
                         await pushToChain(
                             vault, 
@@ -576,7 +596,8 @@ export default class VaultBridgePlugin extends Plugin {
                             (message: string, progress?: number) => {
                                 console.log(`自动同步: ${message} ${progress !== undefined ? progress + '%' : ''}`);
                             },
-                            this.app
+                            this.app,
+                            this.getPackageId()
                         );
                         
                         // 更新最后同步时间
@@ -821,5 +842,49 @@ class VaultBridgeSettingTab extends PluginSettingTab {
                     new Notice('同步状态已重置');
                     this.display();
                 }));
+        
+        // 开发者模式设置（仅在构建时启用时显示）
+        if (typeof ENABLE_DEV_MODE !== 'undefined' && ENABLE_DEV_MODE) {
+            containerEl.createEl('h3', { text: '开发者选项' });
+            
+            const devWarning = containerEl.createDiv('vault-bridge-status vault-bridge-status-warning');
+            devWarning.style.cssText = 'background: var(--background-modifier-error-hover); color: var(--text-error); padding: 10px; border-radius: 5px; margin-bottom: 15px;';
+            devWarning.createSpan().textContent = '⚠️ 警告：开发者选项仅供调试使用，修改这些选项可能导致功能异常！';
+            
+            // 调试模式开关
+            new Setting(containerEl)
+                .setName('启用调试模式')
+                .setDesc('启用后可以使用自定义的Package ID')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.debugMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.debugMode = value;
+                        await this.plugin.saveSettings();
+                        this.display(); // 刷新界面以显示/隐藏PackageId输入框
+                    }));
+            
+            // 自定义Package ID（仅在调试模式开启时显示）
+            if (this.plugin.settings.debugMode) {
+                new Setting(containerEl)
+                    .setName('自定义 Package ID')
+                    .setDesc('输入自定义的Package ID（留空使用默认值）')
+                    .addText(text => text
+                        .setPlaceholder('0x...')
+                        .setValue(this.plugin.settings.customPackageId)
+                        .onChange(async (value) => {
+                            this.plugin.settings.customPackageId = value;
+                            await this.plugin.saveSettings();
+                        }));
+                
+                // 显示当前使用的Package ID
+                const currentPackageIdDiv = containerEl.createDiv('vault-bridge-status vault-bridge-status-info');
+                currentPackageIdDiv.style.cssText = 'background: var(--background-modifier-form-field); padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; word-break: break-all;';
+                const packageId = this.plugin.getPackageId();
+                currentPackageIdDiv.innerHTML = `
+                    <div><strong>当前使用的 Package ID:</strong></div>
+                    <div style="color: var(--text-accent); margin-top: 5px;">${packageId}</div>
+                `;
+            }
+        }
     }
 }
